@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Морской бой</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #f5f0e8;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      font-family: 'Courier New', monospace;
+    }
+    #game-container {
+      width: 100%; height: 100%;
+      display: flex; justify-content: center; align-items: center;
+    }
+    canvas { display: block; touch-action: none; }
+    #loading {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      background: #f5f0e8; z-index: 1000;
+    }
+    #loading .title { font-size: 32px; font-weight: bold; color: #2a4b7c; margin-bottom: 20px; }
+    #loading .dots { font-size: 24px; color: #546e7a; }
+    #error-msg {
+      display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      justify-content: center; align-items: center;
+      background: #f5f0e8; z-index: 2000;
+      padding: 30px; text-align: center;
+    }
+    #error-msg .err-title { font-size: 24px; color: #c0392b; margin-bottom: 12px; }
+    #error-msg .err-detail { font-size: 14px; color: #546e7a; margin-bottom: 20px; }
+    #error-msg .retry-btn { padding: 12px 24px; background: #2a4b7c; color: #fff; border: none; font-size: 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="title">МОРСКОЙ БОЙ</div>
+    <div class="dots">Загрузка...</div>
+  </div>
+  <div id="game-container"></div>
+  <div id="error-msg">
+    <div>
+      <div class="err-title">⚠️ Не удалось загрузить игру</div>
+      <div class="err-detail" id="err-detail">Проверьте интернет и обновите страницу</div>
+      <button class="retry-btn" onclick="location.reload()">Обновить</button>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('error', function(e) {
+      if (e.target && e.target.tagName === 'SCRIPT') {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error-msg').style.display = 'flex';
+        document.getElementById('err-detail').textContent = 'Не удалось загрузить скрипт игры. Проверьте интернет.';
+      }
+    });
+    // Hide loading when game canvas appears
+    new MutationObserver(function(muts) {
+      if (document.querySelector('canvas')) {
+        var el = document.getElementById('loading');
+        if (el) { el.style.display = 'none'; }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  </script>
+  <!-- Phaser из CDN (не в сборке — экономия ~1.3МБ) -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script type="module" crossorigin src="/src/main.js"></script>
+</body>
+</html>
