@@ -718,39 +718,162 @@ export default class BattleScene extends Phaser.Scene {
     const h = this.scale.height;
     const cx = w / 2;
 
+    // Generate a small 8×8 white circle for particles
+    const p = this.make.graphics({add: false});
+    p.fillStyle(0xffffff);
+    p.fillCircle(4, 4, 4);
+    p.generateTexture('particle', 8, 8);
+    p.destroy();
+
+    // ─── Dark overlay ───────────────────────────────
     const overlay = this.add.graphics();
-    overlay.fillStyle(0x000000, 0.5);
+    overlay.fillStyle(0x000000, 0.65);
     overlay.fillRect(0, 0, w, h);
     overlay.setDepth(100);
 
-    const msg = playerWon ? '\u{1F3C6} ПОБЕДА!' : '\u{1F480} Поражение...';
-    this.add.text(cx, h * 0.4, msg, {
-      fontFamily: '"Courier New", monospace',
-      fontSize: '36px',
-      color: playerWon ? '#388e3c' : '#d32f2f',
-      fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(101);
+    // Animate overlay alpha pulse for defeat
+    if (!playerWon) {
+      this.tweens.add({
+        targets: overlay,
+        alpha: { from: 1, to: 0.85 },
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
 
-    this.add.text(cx, h * 0.5, playerWon
+    // ─── Glow ring behind text ───────────────────────
+    const glow = this.add.graphics().setDepth(100);
+    const glowColor = playerWon ? 0xffd700 : 0xcc2222;
+    this.tweens.addCounter({
+      from: 0.3, to: 0.6,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      onUpdate: (tween) => {
+        glow.clear();
+        glow.fillStyle(glowColor, tween.getValue());
+        glow.fillCircle(cx, h * 0.3, 90);
+        glow.fillCircle(cx, h * 0.3, 60);
+      },
+    });
+
+    // ─── Particles ───────────────────────────────────
+    if (playerWon) {
+      // Golden sparkle burst
+      this.add.particles(cx, h * 0.3, 'particle', {
+        speed: { min: 50, max: 140 },
+        angle: { min: 200, max: 340 },
+        scale: { start: 1.5, end: 0 },
+        tint: [0xffd700, 0xffaa00, 0xff6600, 0xffee88, 0xffffff],
+        lifespan: 1500,
+        gravityY: -30,
+        quantity: 2,
+        frequency: 60,
+        duration: 2000,
+      }).setDepth(101);
+    } else {
+      // Red embers falling
+      this.add.particles(cx, 0, 'particle', {
+        speed: { min: 15, max: 45 },
+        angle: { min: 80, max: 100 },
+        scale: { start: 1.0, end: 0.1 },
+        tint: [0xff3333, 0xcc0000, 0xff4400],
+        lifespan: 3000,
+        gravityY: 40,
+        quantity: 2,
+        frequency: 100,
+        duration: 2500,
+      }).setDepth(101);
+    }
+
+    // ─── Title text (animated entrance) ──────────────
+    const titleStr = playerWon ? '\u{1F3C6}  ПОБЕДА!' : '\u{1F480}  Поражение...';
+    const titleColor = playerWon ? '#ffd700' : '#d32f2f';
+    const titleText = this.add.text(cx, h * 0.3, titleStr, {
+      fontFamily: '"Courier New", monospace',
+      fontSize: '40px',
+      color: titleColor,
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(102).setScale(0);
+
+    this.tweens.add({
+      targets: titleText,
+      scale: { from: 0, to: 1.15 },
+      duration: 400,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: titleText,
+          scale: 1,
+          duration: 200,
+          ease: 'Sine.easeOut',
+        });
+      },
+    });
+
+    // ─── Subtitle ────────────────────────────────────
+    const subStr = playerWon
       ? 'Все корабли противника уничтожены!'
-      : 'Все ваши корабли уничтожены', {
+      : 'Все ваши корабли уничтожены';
+    const subText = this.add.text(cx, h * 0.43, subStr, {
       fontFamily: '"Courier New", monospace',
-      fontSize: '20px',
-      color: '#ffffff',
+      fontSize: '18px',
+      color: '#cccccc',
       fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(101);
+      align: 'center',
+    }).setOrigin(0.5).setDepth(102).setAlpha(0);
 
-    const btn = this.add.text(cx, h * 0.6, 'В главное меню', {
+    this.tweens.add({
+      targets: subText,
+      alpha: 1,
+      duration: 600,
+      delay: 500,
+      ease: 'Sine.easeIn',
+    });
+
+    // ─── Buttons ──────────────────────────────────────
+    this.createEndButton(cx, h * 0.56, '\u25B6 Играть еще', () => {
+      this.scale.off('resize', this.resizeHandler);
+      this.scene.start('Place');
+    }, 0x2e7d32);
+    this.createEndButton(cx, h * 0.66, 'В главное меню', () => {
+      this.scale.off('resize', this.resizeHandler);
+      this.scene.start('Menu');
+    }, 0x2a4b7c);
+  }
+
+  createEndButton(x, y, label, callback, bgColor) {
+    const w = this.scale.width;
+    const bg = this.add.graphics().setDepth(101);
+    const text = this.add.text(x, y, label, {
       fontFamily: '"Courier New", monospace',
       fontSize: '20px',
       color: '#f5f0e8',
-      backgroundColor: '#2a4b7c',
-      padding: { x: 20, y: 10 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(101);
-    btn.on('pointerdown', () => {
-      this.scale.off('resize', this.resizeHandler);
-      this.scene.start('Menu');
-    });
+      fontStyle: 'bold',
+      padding: { x: 20, y: 8 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(102);
+
+    // Draw rounded rect background based on text bounds
+    const drawBg = () => {
+      bg.clear();
+      const bx = x - text.width / 2 - 10;
+      const by = text.y - text.height / 2 - 6;
+      const bw = text.width + 20;
+      const bh = text.height + 12;
+      bg.fillStyle(bgColor, 0.9);
+      bg.fillRoundedRect(bx, by, bw, bh, 8);
+    };
+    // Draw immediately (next frame) and on every resize
+    this.time.delayedCall(32, drawBg);
+    text.on('postupdate', drawBg);
+
+    // Button hover
+    text.on('pointerover', () => text.setColor('#ffffff'));
+    text.on('pointerout', () => text.setColor('#f5f0e8'));
+    text.on('pointerdown', callback);
   }
 
   handleNetMessage(msg) {
