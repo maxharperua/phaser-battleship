@@ -174,8 +174,7 @@ export default class BattleScene extends Phaser.Scene {
         }
 
         if (progress >= 1) {
-          g.destroy();
-          timer.destroy();
+          g.clear();
         }
       }
     });
@@ -590,7 +589,7 @@ export default class BattleScene extends Phaser.Scene {
         const ship = this.enemyShips[result.shipIdx];
         this.markSunkArea(ship);
         // Refresh board after sunk markers, with delay so hit animation plays first
-        this.time.delayedCall(900, () => this.refreshBoard());
+        this.time.delayedCall(900, () => { if (this.gameOver) return; this.refreshBoard(); });
       }
       if (allSunk(this.enemyShips)) {
         this.gameOver = true;
@@ -634,7 +633,7 @@ export default class BattleScene extends Phaser.Scene {
         this.markPlayerSunkArea(ship);
         this.ai.markSunk(ship);
         // Refresh board after sunk markers, with delay so hit animation plays first
-        this.time.delayedCall(900, () => this.refreshBoard());
+        this.time.delayedCall(900, () => { if (this.gameOver) return; this.refreshBoard(); });
       }
       if (allSunk(this.playerShips)) {
         this.gameOver = true;
@@ -650,7 +649,7 @@ export default class BattleScene extends Phaser.Scene {
       // Switch back to enemy board for your turn
       this.showEnemyView = true;
       // Delayed refresh to switch view after miss animation plays
-      this.time.delayedCall(900, () => this.refreshBoard());
+      this.time.delayedCall(900, () => { if (this.gameOver) return; this.refreshBoard(); });
     }
   }
 
